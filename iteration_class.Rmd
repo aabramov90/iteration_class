@@ -1,0 +1,117 @@
+---
+title: "iteration_class"
+author:  "Alexey Abramov"
+date: "11/9/2020"
+output: 
+  github_document:
+    toc: true
+---
+
+# Setup
+
+```{r, setup}
+library(tidyverse)
+library(readr)
+library(rvest)
+
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.height = 6,
+  out.width = "90%"
+)
+
+theme_set(
+  ggthemes::theme_fivethirtyeight() + theme(legend.position = "bottom")
+  )
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.colour = "viridis"
+)
+
+scale_colour_discrete = scale_color_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+```
+
+Load in dataset
+```{r}
+homicide_df = read_csv("data/homicides.csv")
+```
+
+Data wrangling
+```{r}
+homicide_df =
+  homicide_df  %>% 
+  mutate(
+    city_state = str_c(city, state, sep = "_"),
+    resolved = case_when(
+            disposition == "Closed without arrest" ~ "unsolved",
+            disposition == "Open/No arrest" ~ "unsolved",
+            disposition == "Closed by arrest" ~ "solved")) %>% 
+  select(city_state, resolved) %>% 
+  filter(city_state != "Tulsa_AL")
+```
+
+```{r}
+aggregate_df =
+  homicide_df %>% 
+  group_by(city_state) %>% 
+  summarize(
+    hom_total = n(),
+    hom_unsolved = sum(resolved =="unsolved")
+  )
+```
+
+Can I do a prop test for a single city?
+```{r}
+prop.test(
+  aggregate_df %>% filter(city_state == "Baltimore_MD") %>% pull(hom_unsolved),
+  aggregate_df %>% filter(city_state == "Baltimore_MD") %>% pull(hom_total)) %>% 
+  broom::tidy()
+```
+
+```{r}
+results_df =
+  aggregate_df %>% 
+  mutate(
+    prop_tests = map2(.x = hom_unsolved, .y = hom_total, ~prop.test(x = .x, n = .y)),
+    tidy_tests = map(.x = prop_tests, ~ broom::tidy(.x))) %>% 
+  select(-prop_tests) %>% 
+  unnest(tidy_tests) %>% 
+  select(city_state, estimate, conf.low, conf.high)
+```
+
+Graphing results
+```{r}
+results_df %>% 
+  mutate(
+    city_state = fct_reorder(city_state, estimate)) %>% 
+  ggplot(aes(x = city_state, y = estimate)) +
+  geom_point() + 
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high))
+```
+
+# Problem 2 ideas...
+
+Import one data set
+
+data_1 = read_csv lda_data / con_01.csv
+list.files("lda_data")...
+Put that into a tibble ... 
+
+path_df = tibble(
+  path = list.files("lda_data")) %>% 
+  mutate(path = str_c("lda_data/", path),
+  data = map(........)
+  
+Control vs. Experiment...
+  Mutate, str_c, pivot_longer for the dates
+
+path_df$path[[1]]
+read_csv(path_df$path[[1]])
+
+```{r}
+```
+
+
